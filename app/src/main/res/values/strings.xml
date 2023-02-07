@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">PuzzleGame5</string>
+    <string name="piece_of_image">piece_of_image</string>
 </resources>
