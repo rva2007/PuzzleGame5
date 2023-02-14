@@ -1,9 +1,6 @@
 package com.example.puzzlegame5
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
-import android.graphics.Point
+import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.media.ThumbnailUtils
 import android.os.Bundle
@@ -80,6 +77,57 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    fun getCroppedBitmap(src: Bitmap, path: Path?): Bitmap {
+        val output = Bitmap.createBitmap(
+            src.width,
+            src.height, Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(output)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = -0x1000000
+        canvas.drawPath(path!!, paint)
+
+        // Keeps the source pixels that cover the destination pixels,
+        // discards the remaining source and destination pixels.
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(src, 0f, 0f, paint)
+        return output
+    }
+
+    fun getPathLeftMidlePuzzle(): Path {
+        val path1 = Path()
+
+        path1.moveTo(0f, 100f)
+
+        path1.rLineTo(150f, 0f)
+        path1.rCubicTo(-100f, -100f, 200f, -100f, 100f, 0f)
+        path1.rLineTo(150f, 0f)
+
+        path1.rLineTo(0f, 150f)
+        path1.rCubicTo(100f, -100f, 100f, 200f, 0f, 100f)
+        path1.rLineTo(0f, 150f)
+        path1.rLineTo(-150f, 0f)
+        path1.rCubicTo(100f, -100f, -200f, -100f, -100f, 0f)
+        path1.rLineTo(-150f, 0f)
+        path1.rLineTo(0f, -400f)
+        return resizePath(path1, 250f,250f)
+
+    }
+
+    fun getPathLeftTopPuzzle(): Path {
+        val path = Path()
+        path.moveTo(0f, 0f)
+        path.rLineTo(400f, 0f)
+        path.rLineTo(0f, 150f)
+        path.rCubicTo(100f, -100f, 100f, 200f, 0f, 100f)
+        path.rLineTo(0f, 150f)
+        path.rLineTo(-150f, 0f)
+        path.rCubicTo(100f, -100f, -200f, -100f, -100f, 0f)
+        path.rLineTo(-150f, 0f)
+        path.rLineTo(0f, -400f)
+        return resizePath(path, 250f,250f)
+    }
+
 
     private fun initRecyclerView(list: MutableList<Bitmap>) {
         recyclerView = findViewById(R.id.recyclerView)
@@ -142,9 +190,13 @@ class MainActivity : AppCompatActivity() {
 
 
     fun getImagePieceList(imageView: ImageView?): ArrayList<Bitmap> {
-        val piecesNumber = 24
-        val rows = 6
+
+        //продумать как задавать количество фрагментов картинки
+
         val columns = 4
+        val rows = columns/4 * 6
+        val piecesNumber = rows * columns
+
 //        val imageView = findViewById<ImageView>(R.id.imPicture)
         val list = ArrayList<Bitmap>(piecesNumber)
 
@@ -177,68 +229,40 @@ class MainActivity : AppCompatActivity() {
 
         //create each bitmap piece and add it to the result array
         var yCoord = 0
-        var xCoord = 0
         for (row in 0 until rows) {
+            var xCoord = 0
             for (column in 0 until columns) {
                 //calculate offset for each piece
                 var offsetX = 0
                 var offsetY = 0
 
-                xCoord = pieceWidth * column
-                yCoord = pieceHeight * row
+                if (column > 0) {
+                    offsetX = pieceWidth / 3
+                }
+                if (row > 0) {
+                    offsetY = pieceHeight / 3
+                }
 
-
-                //надо прописать отступы для различных фрагментов
-
-//                if (row == 0 && column == 0) {
-//                    xCoord = 0
-//                    yCoord = 0
-//                }
-//                if (row == 0 && column < columns - 1) {
-//                    xCoord = xCoord + pieceWidth
-//                    yCoord = 0
-//                }
-//                if (row == 0 && column != 0 && column != columns - 1) {
-//
-//                }
-//                if (row > 0 && row < rows - 1 && column > 0 && column < columns - 1) {
-//
-//                }
-//                if (row > 0 && row < rows - 1 && column == columns - 1) {
-//
-//                }
-//                if (row == rows - 1 && column == columns - 1) {
-//
-//                }
-//                if (row == rows - 1 && column == 0) {
-//
-//                }
-//                if (row == rows - 1 && column != 0 && column != columns - 1) {
-//
-//                }
-//                if (row > 0 && row < rows - 1 && column == 0) {
-//
-//                }
-//
-//                if (column > 0) {
-//                    offsetX = pieceWidth / 3
-//                    xCoord += pieceWidth
-//                }
-//                if (row > 0) {
-//                    offsetY = pieceHeight / 3
-//                    yCoord += pieceHeight
-//                }
-
-
-                val pieceBitmap = Bitmap.createBitmap(
+              val  pieceBitmap = Bitmap.createBitmap(
                     croppedBitmap,
-                    xCoord,
-                    yCoord,
-                    pieceWidth,
-                    pieceHeight
+                    xCoord - offsetX,
+                    yCoord - offsetY,
+                    pieceWidth + offsetX,
+                    pieceHeight + offsetY
                 )
+
+                val piece = PuzzlePiece(applicationContext)
+                piece.setImageBitmap(pieceBitmap)
+                piece.xCoord = xCoord - offsetX + imageView.left
+                piece.yCoord = yCoord - offsetY + imageView.top
+
+                    piece.pieceWidth = pieceWidth + offsetX
+                    piece.pieceHeight = pieceHeight + offsetY
+
                 list.add(pieceBitmap)
+                xCoord += pieceWidth
             }
+            yCoord += pieceHeight
         }
 
 
@@ -246,6 +270,7 @@ class MainActivity : AppCompatActivity() {
 
         return list
     }
+
 
     fun removePiece(view: View) {
         if (imagePieceList!!.size > 0) {
@@ -257,7 +282,23 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun createImageView(index: Int) {
+    fun createImageView(index: Int) {
 
+    }
+
+    companion object {
+
+        //продумать как передавать сюда размеры
+
+        fun resizePath(path: Path?, width: Float, height: Float): Path {
+            val bounds = RectF(0f, 0f, width, height)
+            val resizedPath = Path(path)
+            val src = RectF()
+            resizedPath.computeBounds(src, true)
+            val resizeMatrix = Matrix()
+            resizeMatrix.setRectToRect(src, bounds, Matrix.ScaleToFit.CENTER)
+            resizedPath.transform(resizeMatrix)
+            return resizedPath
+        }
     }
 }
