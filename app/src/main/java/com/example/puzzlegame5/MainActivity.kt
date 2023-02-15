@@ -262,6 +262,7 @@ class MainActivity : AppCompatActivity() {
                 val puzzlePiece = Bitmap.createBitmap(
                     pieceWidth + offsetX, pieceHeight + offsetY, Bitmap.Config.ARGB_8888
                 )
+
                 //draw path
                 val bumpSize = pieceHeight / 4
                 val canvas = Canvas(puzzlePiece)
@@ -363,8 +364,12 @@ class MainActivity : AppCompatActivity() {
 
                     path.close()
                 }
+
+
+
                 //mask the piece
                 val paint = Paint()
+                paint.isAntiAlias = true
                 paint.color = -0x1000000
                 paint.style = Paint.Style.FILL
                 canvas.drawPath(path, paint)
@@ -373,6 +378,7 @@ class MainActivity : AppCompatActivity() {
 
                 //draw a white border
                 var border = Paint()
+                border.isAntiAlias = true
                 border.color = -0x7f000001
                 border.style = Paint.Style.STROKE
                 border.strokeWidth = 8.0f
@@ -380,6 +386,7 @@ class MainActivity : AppCompatActivity() {
 
                 //draw a black border
                 border = Paint()
+                border.isAntiAlias = true
                 border.color = -0x80000000
                 border.style = Paint.Style.STROKE
                 border.strokeWidth = 3.0f
