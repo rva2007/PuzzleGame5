@@ -7,10 +7,10 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Display
 import android.view.View
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.ImageView
+import android.widget.*
+import android.widget.SeekBar.OnSeekBarChangeListener
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
@@ -18,12 +18,15 @@ import androidx.recyclerview.widget.RecyclerView
 class MainActivity : AppCompatActivity() {
 
     private var imPicture: ImageView? = null
+    private var textView: TextView? = null
+    private var seekBar: SeekBar? = null
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: RecyclerViewAdapter
     private var imagePieceList: MutableList<Bitmap>? = ArrayList()
     private var container: FrameLayout? = null
-    private var imPictureWidth: Int? = null
-    private var imPictureHeight: Int? = null
+    private var columns = 6
+    private var rows = columns + columns / 2
+    private var piecesNumber = columns * rows
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,21 +41,37 @@ class MainActivity : AppCompatActivity() {
         display.getSize(size)
         val screenWidth: Int = size.x
         val screenHeight: Int = size.y
-        Log.d(
-            "log",
-            "screenWidth is: " + screenWidth + " screenHeight is: " + screenHeight
-        )
 
         imPicture = findViewById(R.id.imPicture)
         recyclerView = findViewById(R.id.recyclerView)
         container = findViewById(R.id.container)
+        textView = findViewById(R.id.textView)
+        seekBar = findViewById(R.id.seekBar)
+
+        // Выводим в TextView количество пазлов по умолчанию
+        textView?.text = "COMPLEXITY: 54"
+
+        // Устанавливаем обработчики событий изменения значения ползунка
+        seekBar!!.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                // Задаем количество колонок и выводим в TextView
+                // уровень сложность задания (количество пазлов)
+                columns = seekBar.progress
+                rows = columns + columns / 2
+                piecesNumber = columns * rows
+                textView?.text = "COMPLEXITY: $piecesNumber"
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar) {}
+        })
 
         // Конвертируем Drawable в Bitmap
         var image = BitmapFactory.decodeResource(applicationContext.resources, R.drawable.pobeg)
 
         // Вычисляем нужные нам ширину и высоту изображения
-        var width = screenWidth - screenWidth / 100 * 30
-        var height = width / 4 * 6
+        val width = screenWidth - screenWidth / 100 * 30
+        val height = width / 4 * 6
 
         //устанавливаем их для изображения
         image = ThumbnailUtils.extractThumbnail(image, width, height)
@@ -60,72 +79,26 @@ class MainActivity : AppCompatActivity() {
         // Выводим Bitmap в ImageView
         imPicture?.setImageBitmap(image)
 
+
         val button: Button = findViewById<View>(R.id.btnCreateList) as Button
         button.setOnClickListener(View.OnClickListener {
-            // определяем разьеры ImageView
-            Log.d(
-                "log",
-                "imPicture?.width is: " + imPicture?.width + " imPicture?.height is: " + imPicture?.height
-            )
+            // определяем размеры ImageView
+//            Log.d(
+//                "log",
+//                "imPicture?.width is: " + imPicture?.width + " imPicture?.height is: " + imPicture?.height
+//            )
 
             imagePieceList = getImagePieceList(imPicture)
 
             initRecyclerView(imagePieceList!!)
 
+            button.isVisible = false
+            textView?.isVisible = false
+            seekBar?.isVisible = false
+
         })
 
 
-    }
-
-    fun getCroppedBitmap(src: Bitmap, path: Path?): Bitmap {
-        val output = Bitmap.createBitmap(
-            src.width,
-            src.height, Bitmap.Config.ARGB_8888
-        )
-        val canvas = Canvas(output)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        paint.color = -0x1000000
-        canvas.drawPath(path!!, paint)
-
-        // Keeps the source pixels that cover the destination pixels,
-        // discards the remaining source and destination pixels.
-        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        canvas.drawBitmap(src, 0f, 0f, paint)
-        return output
-    }
-
-    fun getPathLeftMidlePuzzle(): Path {
-        val path1 = Path()
-
-        path1.moveTo(0f, 100f)
-
-        path1.rLineTo(150f, 0f)
-        path1.rCubicTo(-100f, -100f, 200f, -100f, 100f, 0f)
-        path1.rLineTo(150f, 0f)
-
-        path1.rLineTo(0f, 150f)
-        path1.rCubicTo(100f, -100f, 100f, 200f, 0f, 100f)
-        path1.rLineTo(0f, 150f)
-        path1.rLineTo(-150f, 0f)
-        path1.rCubicTo(100f, -100f, -200f, -100f, -100f, 0f)
-        path1.rLineTo(-150f, 0f)
-        path1.rLineTo(0f, -400f)
-        return resizePath(path1, 250f,250f)
-
-    }
-
-    fun getPathLeftTopPuzzle(): Path {
-        val path = Path()
-        path.moveTo(0f, 0f)
-        path.rLineTo(400f, 0f)
-        path.rLineTo(0f, 150f)
-        path.rCubicTo(100f, -100f, 100f, 200f, 0f, 100f)
-        path.rLineTo(0f, 150f)
-        path.rLineTo(-150f, 0f)
-        path.rCubicTo(100f, -100f, -200f, -100f, -100f, 0f)
-        path.rLineTo(-150f, 0f)
-        path.rLineTo(0f, -400f)
-        return resizePath(path, 250f,250f)
     }
 
 
@@ -135,6 +108,7 @@ class MainActivity : AppCompatActivity() {
         recyclerView.adapter = adapter
         val layoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
         recyclerView.layoutManager = layoutManager
+
         recyclerView.addItemDecoration(
             MarginItemDecoration(
                 resources.getDimension(R.dimen.default_padding).toInt()
@@ -191,13 +165,12 @@ class MainActivity : AppCompatActivity() {
 
     fun getImagePieceList(imageView: ImageView?): ArrayList<Bitmap> {
 
-        //продумать как задавать количество фрагментов картинки
+        Log.d(
+            "log",
+            " \ncolumns: " + columns + "\nrows: " + rows + "\npiecesNumber: " + piecesNumber
+        )
 
-        val columns = 4
-        val rows = columns/4 * 6
-        val piecesNumber = rows * columns
 
-//        val imageView = findViewById<ImageView>(R.id.imPicture)
         val list = ArrayList<Bitmap>(piecesNumber)
 
         //get the scaled bitmap of the source image
@@ -420,19 +393,19 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    companion object {
-
-        //продумать как передавать сюда размеры
-
-        fun resizePath(path: Path?, width: Float, height: Float): Path {
-            val bounds = RectF(0f, 0f, width, height)
-            val resizedPath = Path(path)
-            val src = RectF()
-            resizedPath.computeBounds(src, true)
-            val resizeMatrix = Matrix()
-            resizeMatrix.setRectToRect(src, bounds, Matrix.ScaleToFit.CENTER)
-            resizedPath.transform(resizeMatrix)
-            return resizedPath
-        }
-    }
+//    companion object {
+//
+//        //продумать как передавать сюда размеры
+//
+//        fun resizePath(path: Path?, width: Float, height: Float): Path {
+//            val bounds = RectF(0f, 0f, width, height)
+//            val resizedPath = Path(path)
+//            val src = RectF()
+//            resizedPath.computeBounds(src, true)
+//            val resizeMatrix = Matrix()
+//            resizeMatrix.setRectToRect(src, bounds, Matrix.ScaleToFit.CENTER)
+//            resizedPath.transform(resizeMatrix)
+//            return resizedPath
+//        }
+//    }
 }
