@@ -1,9 +1,9 @@
 package com.example.puzzlegame5
 
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.RelativeLayout
 
 class TouchListener( private val activity: MainActivity) :View.OnTouchListener{
@@ -16,7 +16,7 @@ class TouchListener( private val activity: MainActivity) :View.OnTouchListener{
         val tolerance = Math.sqrt(
             Math.pow(view!!.width.toDouble(), 2.0) +
                     Math.pow(view.height.toDouble(), 2.0)
-        ) / 10
+        ) / 5
 
         val piece = view as PuzzlePiece
 
@@ -24,7 +24,7 @@ class TouchListener( private val activity: MainActivity) :View.OnTouchListener{
             return true
         }
 
-        val lParams = view.layoutParams as FrameLayout.LayoutParams
+        val lParams = view.layoutParams as RelativeLayout.LayoutParams
 
         when (motionEvent.action and MotionEvent.ACTION_MASK) {
             MotionEvent.ACTION_DOWN -> {
@@ -36,7 +36,7 @@ class TouchListener( private val activity: MainActivity) :View.OnTouchListener{
 
             MotionEvent.ACTION_MOVE -> {
                 lParams.leftMargin = (x - xDelta).toInt()
-                lParams.leftMargin = (y - yDelta).toInt()
+                lParams.topMargin = (y - yDelta).toInt()
                 view.layoutParams = lParams
             }
 
@@ -45,16 +45,38 @@ class TouchListener( private val activity: MainActivity) :View.OnTouchListener{
                     piece.xCoord - lParams.leftMargin
                 )
                 val yDiff = StrictMath.abs(
-                    piece.yCoord - lParams.leftMargin
+                    piece.yCoord - lParams.topMargin
                 )
 
                 if (xDiff <= tolerance && yDiff <= tolerance) {
-                    lParams.leftMargin = piece.xCoord
-                    lParams.topMargin = piece.yCoord
+                    Log.d(
+                        "log",
+                        "\n \npieceWidth: " + piece.pieceWidth
+                                + "\npieceHeight: " + piece.pieceHeight
+                    )
+
+                    if (piece.xCoord == 0 && piece.yCoord == 0) {
+                        lParams.leftMargin = piece.xCoord
+                        lParams.topMargin = piece.yCoord
+                    }
+                    if (piece.xCoord > 0 && piece.yCoord == 0) {
+                        lParams.leftMargin = piece.xCoord - 113
+                        lParams.topMargin = piece.yCoord
+                    }
+                    if (piece.xCoord == 0 && piece.yCoord > 0) {
+                        lParams.leftMargin = piece.xCoord
+                        lParams.topMargin = piece.yCoord - 127
+                    }
+                    if (piece.xCoord > 0 && piece.yCoord > 0) {
+                        lParams.leftMargin = piece.xCoord - 113
+                        lParams.topMargin = piece.yCoord - 127
+                    }
+
                     piece.layoutParams = lParams
                     piece.canMove = false
                     sendViewToBack(piece)
                     activity.checkGameOver()
+
                 }
             }
         }

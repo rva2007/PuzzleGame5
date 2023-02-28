@@ -19,7 +19,7 @@ import kotlin.random.Random
 class MainActivity : AppCompatActivity() {
     var pieces: ArrayList<PuzzlePiece>? = null
     private var imPicture: ImageView? = null
-    private var container: FrameLayout? = null
+    private var container: RelativeLayout? = null
     private var columns = 6
     private var rows = columns + columns / 2
     private var piecesNumber = columns * rows
@@ -70,7 +70,7 @@ class MainActivity : AppCompatActivity() {
                 container!!.addView(piece)
 
                 //randomize position on the bottom of screen
-                val lParams = piece.layoutParams as FrameLayout.LayoutParams
+                val lParams = piece.layoutParams as RelativeLayout.LayoutParams
                 lParams.leftMargin = Random.nextInt(
                     container!!.width - piece.pieceWidth
                 )
@@ -364,7 +364,7 @@ class MainActivity : AppCompatActivity() {
         val y = event.rawY.toInt()
         when (event.action and MotionEvent.ACTION_MASK) {
             MotionEvent.ACTION_DOWN -> {
-                val lParams = view.layoutParams as FrameLayout.LayoutParams
+                val lParams = view.layoutParams as RelativeLayout.LayoutParams
                 xDelta = x - lParams.leftMargin
                 yDelta = y - lParams.topMargin
             }
@@ -373,7 +373,7 @@ class MainActivity : AppCompatActivity() {
             }
             MotionEvent.ACTION_MOVE -> {
                 if (x - xDelta + view.width <= container!!.width && y - yDelta + view.height <= container!!.height && x - xDelta >= 0 && y - yDelta >= 0) {
-                    val layoutParams = view.layoutParams as FrameLayout.LayoutParams
+                    val layoutParams = view.layoutParams as RelativeLayout.LayoutParams
                     layoutParams.leftMargin = x - xDelta
                     layoutParams.topMargin = y - yDelta
                     layoutParams.rightMargin = 0
