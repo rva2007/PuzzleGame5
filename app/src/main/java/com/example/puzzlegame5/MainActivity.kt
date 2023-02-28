@@ -1,32 +1,33 @@
 package com.example.puzzlegame5
 
+import android.annotation.SuppressLint
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.media.ThumbnailUtils
 import android.os.Bundle
 import android.util.Log
 import android.view.Display
+import android.view.MotionEvent
 import android.view.View
 import android.widget.*
-import android.widget.SeekBar.OnSeekBarChangeListener
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.isVisible
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlin.random.Random
 
 
 class MainActivity : AppCompatActivity() {
-
+    var pieces: ArrayList<PuzzlePiece>? = null
     private var imPicture: ImageView? = null
-    private var textView: TextView? = null
-    private var seekBar: SeekBar? = null
-    private lateinit var recyclerView: RecyclerView
-    private lateinit var adapter: RecyclerViewAdapter
-    private var imagePieceList: MutableList<Bitmap>? = ArrayList()
     private var container: FrameLayout? = null
     private var columns = 6
     private var rows = columns + columns / 2
     private var piecesNumber = columns * rows
+    private var xDelta = 0
+    private var yDelta = 0
+    private var imageTileWidth: Int = 0
+    private var imageTileHeight: Int = 0
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,29 +44,10 @@ class MainActivity : AppCompatActivity() {
         val screenHeight: Int = size.y
 
         imPicture = findViewById(R.id.imPicture)
-        recyclerView = findViewById(R.id.recyclerView)
         container = findViewById(R.id.container)
-        textView = findViewById(R.id.textView)
-        seekBar = findViewById(R.id.seekBar)
-
-        // Выводим в TextView количество пазлов по умолчанию
-        textView?.text = "COMPLEXITY: 54"
-
-        // Устанавливаем обработчики событий изменения значения ползунка
-        seekBar!!.setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                // Задаем количество колонок и выводим в TextView
-                // уровень сложность задания (количество пазлов)
-                columns = seekBar.progress
-                rows = columns + columns / 2
-                piecesNumber = columns * rows
-                textView?.text = "COMPLEXITY: $piecesNumber"
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar) {}
-        })
-
+//        recyclerView = findViewById(R.id.recyclerView)
+//        textView = findViewById(R.id.textView)
+//        seekBar = findViewById(R.id.seekBar)
         // Конвертируем Drawable в Bitmap
         var image = BitmapFactory.decodeResource(applicationContext.resources, R.drawable.pobeg)
 
@@ -79,42 +61,29 @@ class MainActivity : AppCompatActivity() {
         // Выводим Bitmap в ImageView
         imPicture?.setImageBitmap(image)
 
+        // run image related code after the view was laid out to have all dimensions calculated
+        imPicture!!.post {
+            val touchListener1 = TouchListener(this)
+            pieces = getImagePieceList(imPicture)
+            for (piece in pieces!!) {
+                piece.setOnTouchListener(touchListener1)
+                container!!.addView(piece)
 
-        val button: Button = findViewById<View>(R.id.btnCreateList) as Button
-        button.setOnClickListener(View.OnClickListener {
-            // определяем размеры ImageView
-//            Log.d(
-//                "log",
-//                "imPicture?.width is: " + imPicture?.width + " imPicture?.height is: " + imPicture?.height
-//            )
+                //randomize position on the bottom of screen
+                val lParams = piece.layoutParams as FrameLayout.LayoutParams
+                lParams.leftMargin = Random.nextInt(
+                    container!!.width - piece.pieceWidth
+                )
+                lParams.topMargin = container!!.height - piece.pieceHeight
 
-            imagePieceList = getImagePieceList(imPicture)
+                piece.layoutParams = lParams
+            }
 
-            initRecyclerView(imagePieceList!!)
-
-            button.isVisible = false
-            textView?.isVisible = false
-            seekBar?.isVisible = false
-
-        })
+        }
 
 
     }
 
-
-    private fun initRecyclerView(list: MutableList<Bitmap>) {
-        recyclerView = findViewById(R.id.recyclerView)
-        adapter = RecyclerViewAdapter(list)
-        recyclerView.adapter = adapter
-        val layoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
-        recyclerView.layoutManager = layoutManager
-
-        recyclerView.addItemDecoration(
-            MarginItemDecoration(
-                resources.getDimension(R.dimen.default_padding).toInt()
-            )
-        )
-    }
 
     private fun getBitmapPositionInsideImageView(imageView: ImageView?): IntArray {
 
@@ -163,7 +132,13 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    fun getImagePieceList(imageView: ImageView?): ArrayList<Bitmap> {
+    fun getImagePieceList(imageView: ImageView?): ArrayList<PuzzlePiece> {
+
+        columns = 3
+        rows = columns + columns / 2
+        piecesNumber = columns * rows
+
+
 
         Log.d(
             "log",
@@ -171,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         )
 
 
-        val list = ArrayList<Bitmap>(piecesNumber)
+        val pieces = ArrayList<PuzzlePiece>(piecesNumber)
 
         //get the scaled bitmap of the source image
         val drawable = imageView!!.drawable as BitmapDrawable
@@ -368,30 +343,79 @@ class MainActivity : AppCompatActivity() {
 
                 //set the resulting bitmap to the piece
                 piece.setImageBitmap(puzzlePiece)
+                piece.xCoord = xCoord
+                piece.yCoord = yCoord
+                imageTileWidth = pieceWidth
+                imageTileHeight = pieceHeight
 
 
-                list.add(puzzlePiece)
+                pieces.add(piece)
                 xCoord += pieceWidth
             }
             yCoord += pieceHeight
         }
-        return list
+        return pieces
     }
 
 
-    fun removePiece(view: View) {
-        if (imagePieceList!!.size > 0) {
-            val index = 0
-            createImageView(index)
-            imagePieceList!!.removeAt(index)
-            adapter.notifyItemRemoved(index)
+    @SuppressLint("ClickableViewAccessibility")
+    val touchListener = View.OnTouchListener { view, event ->
+        val x = event.rawX.toInt()
+        val y = event.rawY.toInt()
+        when (event.action and MotionEvent.ACTION_MASK) {
+            MotionEvent.ACTION_DOWN -> {
+                val lParams = view.layoutParams as FrameLayout.LayoutParams
+                xDelta = x - lParams.leftMargin
+                yDelta = y - lParams.topMargin
+            }
+            MotionEvent.ACTION_UP -> {
+                Toast.makeText(applicationContext, "Объект перемещён", Toast.LENGTH_SHORT).show()
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (x - xDelta + view.width <= container!!.width && y - yDelta + view.height <= container!!.height && x - xDelta >= 0 && y - yDelta >= 0) {
+                    val layoutParams = view.layoutParams as FrameLayout.LayoutParams
+                    layoutParams.leftMargin = x - xDelta
+                    layoutParams.topMargin = y - yDelta
+                    layoutParams.rightMargin = 0
+                    layoutParams.bottomMargin = 0
+                    view.layoutParams = layoutParams
+                }
+            }
+        }
+        container!!.invalidate()
+        true
+    }
+
+
+    fun checkGameOver() {
+        if (isGameOver) {
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle("You Won!!!")
+                .setIcon(R.drawable.ic_celebration)
+                .setMessage("You won!\nDo you want to play a new game?")
+                .setPositiveButton("Yes") { dialog, _ ->
+                    finish()
+                    dialog.dismiss()
+                }
+                .setNegativeButton("No") { dialog, _ ->
+                    finish()
+                    dialog.dismiss()
+                }
+                .create()
+                .show()
+        }
+    }
+
+    private val isGameOver: Boolean
+        get() {
+            for (piece in pieces!!) {
+                if (piece.canMove) {
+                    return false
+                }
+            }
+            return true
         }
 
-    }
-
-    fun createImageView(index: Int) {
-
-    }
 
 //    companion object {
 //
